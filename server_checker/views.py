@@ -5,6 +5,10 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from .forms import ExcelUploadForm
 from server_checker.models import IpAddress
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework import status
 
 def save_excel_to_db(f):
 
@@ -25,36 +29,43 @@ def save_excel_to_db(f):
     # Return the response from the POST request
     return HttpResponse("Data uploaded successfully.")
 
-def upload_excel(request):
-    if request.method == 'POST':
-        form = ExcelUploadForm(request.POST, request.FILES)
-        if form.is_valid():
-            response = save_excel_to_db(request.FILES['file'])
+
+class UploadExcelView(APIView):
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, *args, **kwargs):
+        if 'file' not in request.FILES:
+            return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        file_obj = request.FILES['file']
+        
+        try:
+            # df = pd.read_excel(file_obj)
+            # Call your function to save the DataFrame to the database
+            response = save_excel_to_db(file_obj)
             if response.status_code == 200:
-                return HttpResponse("Excel file processed and data posted successfully!")
+                return Response({"message": "Excel file processed and data posted successfully!"}, status=status.HTTP_200_OK)
             else:
-                return HttpResponse(f"Failed to post data: {response.text}", status=response.status_code)
-    else:
-        form = ExcelUploadForm()
-    return render(request, 'server_checker/upload_excel.html', {'form': form})
+                return Response({"error": f"Failed to post data: {response.text}"}, status=response.status_code)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-def homepage(request):
-    return render(request, 'server_checker/homepage.html')
 
-def check_excel_existence(data):
+def check_excel_existence(request, data):
 
         # exists = ServerStatus.objects.filter(ip_address='192.168.1.2').exists()
     
     # Create DataFrame
     df = pd.read_excel(data, engine='openpyxl')
+    activeIps = []
     
     
     for index, row in df.iterrows():
         if(not IpAddress.objects.filter(ip_address=row[0]).exists()):
             df.at[index, 'Status'] = "Inactive"
-            
-            
-    
+        else: 
+            activeIps.append(df.at[index, 'Ip_address'])
+     
     # Create a BytesIO buffer to hold the Excel file
     from io import BytesIO
     buffer = BytesIO()
@@ -70,25 +81,36 @@ def check_excel_existence(data):
     # Return the file as an HTTP response
     response = HttpResponse(excel_file, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename="updated.xlsx"'
-    
-    return response
+    return response 
 
 
-def check_excel(request):
-    if request.method == 'POST':
-        form = ExcelUploadForm(request.POST, request.FILES)
-        if form.is_valid():
-            response = check_excel_existence(request.FILES['file'])
+class CheckExcelView(APIView):
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, *args, **kwargs):
+        if 'file' not in request.FILES:
+            return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        file_obj = request.FILES['file']
+        
+        try:
+            # Call your function to save the DataFrame to the database
+            response = check_excel_existence(request, file_obj)
+            
             if response.status_code == 200:
-                return response # HttpResponse("Excel file processed and data posted successfully!")
+                return response
             else:
-                return HttpResponse(f"Failed to post data: {response.text}", status=response.status_code)
-    else:
-        form = ExcelUploadForm()
-    return render(request, 'server_checker/upload_excel.html', {'form': form})
+                return Response({"error": f"Failed to post data: {response.text}"}, status=response.status_code)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 
-def delete_items(request):    
-    IpAddress.objects.all().delete()
-    return HttpResponse("All data is deleted")
+class DeleteItemsView(APIView):
+    
+    def delete(self, request, *args, **kwargs):
+        try:
+            IpAddress.objects.all().delete()
+            return Response({"message": "All data is deleted"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
