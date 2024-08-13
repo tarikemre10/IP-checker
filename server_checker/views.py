@@ -20,10 +20,13 @@ def save_excel_to_db(f):
     # print(df["status"].loc[0])
     
     for _, row in df.iterrows():
+        
         IpAddress.objects.create(
             ip_address=row['Ip_address'],
             status=row['Status']
         )
+        
+            
     # Create object and save to the database
     # ServerStatus.objects.create(ip_address='192.168.1.2', status='inactive')
 
@@ -51,7 +54,52 @@ class UploadExcelView(APIView):
                 return Response({"error": f"Failed to post data: {response.text}"}, status=response.status_code)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
 
+def delete_inactives(request, data):
+
+        # exists = ServerStatus.objects.filter(ip_address='192.168.1.2').exists()
+    try:
+        
+        # Create DataFrame
+        df = pd.read_excel(data, engine='openpyxl')
+        
+        for index, row in df.iterrows():
+            ip_address = row[0]   
+            # Check if the IP address exists in the database
+            if IpAddress.objects.filter(ip_address=ip_address).exists():
+                # If it exists, delete it
+                IpAddress.objects.filter(ip_address=ip_address).delete()
+                df.at[index, 'Status'] = "Deleted"
+            else: 
+                # If it doesn't exist, do nothing but you can still keep track of active IPs
+                pass
+        response = HttpResponse("Data uploaded successfully.")
+    except Exception as e:
+        response = e
+    
+    return response 
+        
+        
+class DeleteExcelView(APIView):
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, *args, **kwargs):
+        if 'file' not in request.FILES:
+            return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        file_obj = request.FILES['file']
+        
+        try:
+            # Call your function to save the DataFrame to the database
+            response = delete_inactives(request, file_obj)
+            
+            if response.status_code == 200:
+                return response
+            else:
+                return Response({"error": f"Failed to post data: {response.text}"}, status=response.status_code)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 def check_excel_existence(request, data):
 

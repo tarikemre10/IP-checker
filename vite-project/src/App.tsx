@@ -1,8 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import IpListPage from './pages/IpListPage';
-import HomePage from "./pages/HomePage";
+import HomePage from './pages/HomePage';
 import FileUploadPage from './pages/FileUploadPage';
+import FileCheckPage from "./pages/FileCheckPage";
+import FileDeletePage from "./pages/FileDeletePage";
 
 
 const App: React.FC = () => {
@@ -10,8 +11,9 @@ const App: React.FC = () => {
       <Router>
         <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route path="/ip-list" element={<IpListPage />} />
             <Route path="/upload-file" element={<FileUploadPage />} />
+            <Route path="/check-file" element={<FileCheckPage />} />
+            <Route path="/delete-inactive-files" element={<FileDeletePage />} />
         </Routes>
       </Router>
   );
