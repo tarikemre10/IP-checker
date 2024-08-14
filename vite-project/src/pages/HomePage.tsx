@@ -71,7 +71,7 @@ const HomePage: React.FC = () => {
             <Header/>
             <div style={styles.mainContent}>
                 <div style={styles.content}>
-                    <h1 style={styles.heading}>List of IP Addresses</h1>
+                    <h1 style={styles.heading}>Active IP Addresses</h1>
                     <div style={styles.listContainer}>
                         <SearchBox searchQuery={searchQuery} setSearchQuery={setSearchQuery}/>
                         <IpAddressList ipAddresses={filteredIpAddresses}/>
@@ -79,13 +79,13 @@ const HomePage: React.FC = () => {
                 </div>
                 <div style={styles.buttonsContainer}>
                     <button onClick={handleNavigateToUploadFile} style={styles.button}>
-                        Upload Excel File
-                    </button>
-                    <button onClick={handleNavigateToCheckFile} style={styles.button}>
-                        Check Excel File
+                        Upload Active IP addresses
                     </button>
                     <button onClick={handleDeleteInactiveIps} style={styles.button}>
-                        Check Excel File
+                        Upload Inactive IP addresses
+                    </button>
+                    <button onClick={handleNavigateToCheckFile} style={styles.button}>
+                        Check the status of your file
                     </button>
                 </div>
             </div>
